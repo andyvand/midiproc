@@ -7,11 +7,27 @@
 #include "../compat/string_compat.h"
 #include "../compat/print_compat.h"
 
+#ifndef OLD_MSVC
+#include <stdint.h>
+#else
+typedef char int8_t;
+typedef short int16_t;
+typedef int int32_t;
+typedef __int64 int64_t;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned __int64 uint64_t;
+typedef unsigned int size_t;
+
+#ifndef MIN
+#define MIN(A,B) ((A) < (B) ? (A) : (B))
+#endif
+#endif
+
 #pragma warning(disable: 4242)
 #include <algorithm>
 #pragma warning(default: 4242)
-
-#pragma region MIDI Event
 
 MIDIEvent::MIDIEvent(const MIDIEvent & other)
 {
@@ -28,10 +44,6 @@ MIDIEvent::MIDIEvent(uint32_t timestamp, EventType eventType, uint32_t channelNu
     ChannelNumber = channelNumber;
     Data.assign(data, data + size);
 }
-
-#pragma endregion
-
-#pragma region MIDI Track
 
 void MIDITrack::AddEvent(const MIDIEvent & newEvent)
 {
@@ -66,9 +78,6 @@ void MIDITrack::RemoveEvent(size_t index)
     _Events.erase(_Events.begin() + (int)index);
 }
 
-#pragma endregion
-
-#pragma region("Tempo Map")
 TempoItem::TempoItem(uint32_t timestamp, uint32_t tempo)
 {
     Timestamp = timestamp;
@@ -100,7 +109,7 @@ uint32_t TempoMap::TimestampToMS(uint32_t p_timestamp, uint32_t division) const
 {
     uint32_t TimestampInMS = 0;
 
-    std::vector<TempoItem>::const_iterator Iterator = _Items.begin();
+    std::vector<TempoItem>::iterator Iterator = (std::vector<TempoItem>::iterator)_Items.begin();
 
     uint32_t Tempo = 500000;
 
@@ -125,9 +134,7 @@ uint32_t TempoMap::TimestampToMS(uint32_t p_timestamp, uint32_t division) const
 
     return TimestampInMS;
 }
-#pragma endregion
 
-#pragma region("System Exclusive Table")
 SysExItem::SysExItem(const SysExItem & src)
 {
     Offset = src.Offset;
@@ -135,14 +142,14 @@ SysExItem::SysExItem(const SysExItem & src)
     PortNumber = src.PortNumber;
 }
 
-SysExItem::SysExItem(uint8_t portNumber, std::size_t offset, std::size_t size)
+SysExItem::SysExItem(uint8_t portNumber, size_t offset, size_t size)
 {
     Offset = offset;
     Size = size;
     PortNumber = portNumber;
 }
 
-size_t SysExTable::AddItem(const uint8_t * data, std::size_t size, uint8_t portNumber)
+size_t SysExTable::AddItem(const uint8_t * data, size_t size, uint8_t portNumber)
 {
     for (std::vector<SysExItem>::iterator it = _Items.begin(); it < _Items.end(); ++it)
     {
@@ -160,7 +167,7 @@ size_t SysExTable::AddItem(const uint8_t * data, std::size_t size, uint8_t portN
     return (_Items.size() - 1);
 }
 
-bool SysExTable::GetItem(size_t index, const uint8_t * & data, std::size_t & size, uint8_t & portNumber) const
+bool SysExTable::GetItem(size_t index, const uint8_t * & data, size_t & size, uint8_t & portNumber) const
 {
     if (index >= _Items.size())
         return false;
@@ -173,9 +180,7 @@ bool SysExTable::GetItem(size_t index, const uint8_t * & data, std::size_t & siz
 
     return true;
 }
-#pragma endregion
 
-#pragma region("MIDI Meta Data")
 void MIDIMetaData::AddItem(const MIDIMetaDataItem & item)
 {
     _Items.push_back(item);
@@ -210,23 +215,21 @@ bool MIDIMetaData::GetBitmap(std::vector<uint8_t> & bitmap) const
     return bitmap.size() != 0;
 }
 
-void MIDIMetaData::AssignBitmap(std::vector<uint8_t>::const_iterator const begin, std::vector<uint8_t>::const_iterator const end)
+void MIDIMetaData::AssignBitmap(std::vector<uint8_t>::iterator const begin, std::vector<uint8_t>::iterator const end)
 {
     _Bitmap.assign(begin, end);
 }
 
-std::size_t MIDIMetaData::GetCount(void) const
+size_t MIDIMetaData::GetCount(void) const
 {
     return _Items.size();
 }
 
-const MIDIMetaDataItem & MIDIMetaData::operator [] (std::size_t p_index) const
+const MIDIMetaDataItem & MIDIMetaData::operator [] (size_t p_index) const
 {
     return _Items[p_index];
 }
-#pragma endregion
 
-#pragma region("MIDI Container")
 void MIDIContainer::Initialize(uint32_t format, uint32_t timeDivision)
 {
     _Format = format;
@@ -278,7 +281,7 @@ void MIDIContainer::AddTrack(const MIDITrack & track)
             {
                 if ((Event.Data[1] == (uint8_t)InstrumentName) || (Event.Data[1] == (uint8_t)DeviceNameE))
                 {
-                    DeviceName.assign(Event.Data.begin() + 2, Event.Data.end());
+                    DeviceName.assign((const char *)(Event.Data.begin() + 2), (const char *)(Event.Data.end()));
                     std::transform(DeviceName.begin(), DeviceName.end(), DeviceName.begin(), ::tolower);
                 }
                 else if (Event.Data[1] == (uint8_t)MIDIPort)
@@ -286,7 +289,7 @@ void MIDIContainer::AddTrack(const MIDITrack & track)
                     PortNumber = Event.Data[2];
 
                     LimitPortNumber(PortNumber);
-                    DeviceName.clear();
+                    DeviceName.assign((const char *)(NULL), (const char *)(NULL));
                 }
             }
         }
@@ -314,18 +317,18 @@ void MIDIContainer::AddTrack(const MIDITrack & track)
                 }
 
                 LimitPortNumber(PortNumber);
-                DeviceName.clear();
+                DeviceName.assign((const char *)(NULL), (const char *)(NULL));
             }
 
             ChannelNumber += 16 * PortNumber;
             ChannelNumber %= 48;
 
             if (_Format != 2)
-                _ChannelMask[0] |= 1ULL << ChannelNumber;
+                _ChannelMask[0] |= (uint64_t)(1) << ChannelNumber;
             else
             {
                 _ChannelMask.resize(_Tracks.size(), 0);
-                _ChannelMask[_Tracks.size() - 1] |= 1ULL << ChannelNumber;
+                _ChannelMask[_Tracks.size() - 1] |= (uint64_t)(1) << ChannelNumber;
             }
         }
     }
@@ -369,12 +372,12 @@ void MIDIContainer::AddEventToTrack(size_t trackNumber, const MIDIEvent & event)
     {
         if (_Format != 2)
         {
-            _ChannelMask[0] |= 1ULL << event.ChannelNumber;
+            _ChannelMask[0] |= (uint64_t)(1) << event.ChannelNumber;
         }
         else
         {
             _ChannelMask.resize(_Tracks.size(), 0);
-            _ChannelMask[trackNumber] |= 1ULL << event.ChannelNumber;
+            _ChannelMask[trackNumber] |= (uint64_t)(1) << event.ChannelNumber;
         }
     }
 
@@ -407,10 +410,12 @@ void MIDIContainer::SetExtraMetaData(const MIDIMetaData & data)
 
 void MIDIContainer::ApplyHack(uint32_t hack)
 {
+	size_t i = 0;
+
     switch (hack)
     {
         case 0: // Hack 0: Remove channel 16
-            for (size_t i = 0; i < _Tracks.size(); ++i)
+            for (i = 0; i < _Tracks.size(); ++i)
             {
                 MIDITrack & t = _Tracks[i];
 
@@ -429,7 +434,7 @@ void MIDIContainer::ApplyHack(uint32_t hack)
             break;
 
         case 1: // Hack 1: Remove channels 11-16
-            for (size_t i = 0; i < _Tracks.size(); ++i)
+            for (i = 0; i < _Tracks.size(); ++i)
             {
                 MIDITrack & t = _Tracks[i];
 
@@ -459,7 +464,7 @@ void MIDIContainer::SerializeAsStream(size_t subSongIndex, std::vector<MIDIStrea
 
     size_t TrackCount = _Tracks.size();
 
-    std::vector<std::size_t> TrackPositions(TrackCount, 0);
+    std::vector<size_t> TrackPositions(TrackCount, 0);
     std::vector<uint8_t> PortNumbers(TrackCount, 0);
     std::vector<std::string> DeviceNames(TrackCount);
 
@@ -565,7 +570,7 @@ void MIDIContainer::SerializeAsStream(size_t subSongIndex, std::vector<MIDIStrea
                     }
 
                     PortNumbers[SelectedTrack] = (uint8_t) i;
-                    DeviceNames[SelectedTrack].clear();
+                    DeviceNames[SelectedTrack].assign((const char *)(NULL), (const char *)(NULL));
 
                     LimitPortNumber(PortNumbers[SelectedTrack]);
                 }
@@ -599,7 +604,7 @@ void MIDIContainer::SerializeAsStream(size_t subSongIndex, std::vector<MIDIStrea
                         }
 
                         PortNumbers[SelectedTrack] = (uint8_t) i;
-                        DeviceNames[SelectedTrack].clear();
+                        DeviceNames[SelectedTrack].assign((const char *)(NULL), (const char *)(NULL));
 
                         LimitPortNumber(PortNumbers[SelectedTrack]);
                     }
@@ -618,7 +623,7 @@ void MIDIContainer::SerializeAsStream(size_t subSongIndex, std::vector<MIDIStrea
                 {
                     if ((Event.Data[1] == (uint8_t)InstrumentName) || (Event.Data[1] == (uint8_t)DeviceNameE))
                     {
-                        DeviceNames[SelectedTrack].assign(Event.Data.begin() + 2, Event.Data.end());
+                        DeviceNames[SelectedTrack].assign((const char *)(Event.Data.begin() + 2), (const char *)(Event.Data.end()));
 
                         std::transform(DeviceNames[SelectedTrack].begin(), DeviceNames[SelectedTrack].end(), DeviceNames[SelectedTrack].begin(), ::tolower);
                     }
@@ -626,7 +631,7 @@ void MIDIContainer::SerializeAsStream(size_t subSongIndex, std::vector<MIDIStrea
                     if (Event.Data[1] == MIDIPort)
                     {
                         PortNumbers[SelectedTrack] = Event.Data[2];
-                        DeviceNames[SelectedTrack].clear();
+                        DeviceNames[SelectedTrack].assign((const char *)(NULL), (const char *)(NULL));
 
                         LimitPortNumber(PortNumbers[SelectedTrack]);
                     }
@@ -645,7 +650,7 @@ void MIDIContainer::SerializeAsStream(size_t subSongIndex, std::vector<MIDIStrea
                         }
 
                         PortNumbers[SelectedTrack] = (uint8_t) i;
-                        DeviceNames[SelectedTrack].clear();
+                        DeviceNames[SelectedTrack].assign((const char *)(NULL), (const char *)(NULL));
                         LimitPortNumber(PortNumbers[SelectedTrack]);
                     }
 
@@ -671,7 +676,7 @@ void MIDIContainer::SerializeAsSMF(std::vector<uint8_t> & midiStream) const
 
     const char signature[] = "MThd";
 
-    midiStream.insert(midiStream.end(), signature, signature + 4);
+    midiStream.insert(midiStream.end(), (unsigned int)signature, (const unsigned char)(signature + 4));
 
     midiStream.push_back(0);
     midiStream.push_back(0);
@@ -692,7 +697,7 @@ void MIDIContainer::SerializeAsSMF(std::vector<uint8_t> & midiStream) const
         const MIDITrack & Track = _Tracks[i];
         const char ChunkType[] = "MTrk";
 
-        midiStream.insert(midiStream.end(), ChunkType, ChunkType + 4);
+        midiStream.insert(midiStream.end(), (unsigned int)ChunkType, (unsigned char)(ChunkType + 4));
 
         size_t ChunkSizeOffset = midiStream.size();
 
@@ -769,6 +774,9 @@ void MIDIContainer::SerializeAsSMF(std::vector<uint8_t> & midiStream) const
 
 void MIDIContainer::PromoteToType1(void)
 {
+	size_t i = 0;
+	size_t j = 0;
+
     if (_Format != 0)
         return;
 
@@ -788,7 +796,7 @@ void MIDIContainer::PromoteToType1(void)
 
     _Tracks.resize(0);
 
-    for (std::size_t i = 0; i < original_data_track.GetLength(); ++i)
+    for (i = 0; i < original_data_track.GetLength(); ++i)
     {
         const MIDIEvent & event = original_data_track[i];
 
@@ -806,14 +814,14 @@ void MIDIContainer::PromoteToType1(void)
             if (!meter_track_present)
                 new_tracks[0].AddEvent(event);
 
-            for (std::size_t j = 1; j < 17; ++j)
+            for (j = 1; j < 17; ++j)
             {
                 new_tracks[j].AddEvent(event);
             }
         }
     }
 
-    for (std::size_t i = 0; i < 17; ++i)
+    for (i = 0; i < 17; ++i)
     {
         if (new_tracks[i].GetLength() > 1)
             AddTrack(new_tracks[i]);
@@ -1612,7 +1620,7 @@ uint32_t MIDIContainer::TimestampToMS(uint32_t timestamp, size_t subSongIndex) c
 
     if ((subSongIndex > 0) && (TempoMapCount > 0))
     {
-        for (size_t i = (std::min)(subSongIndex, TempoMapCount); --i; )
+        for (size_t i = MIN(subSongIndex, TempoMapCount); --i; )
         {
             size_t Count = _TempoMaps[i].Size();
 
@@ -1653,4 +1661,3 @@ uint32_t MIDIContainer::TimestampToMS(uint32_t timestamp, size_t subSongIndex) c
 
     return TimestampInMS;
 }
-#pragma endregion

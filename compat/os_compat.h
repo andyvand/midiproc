@@ -4,18 +4,15 @@
 // if windows
 #pragma once
 
-#if defined(WIN32) || defined(_WIN32)
+#ifdef _WIN32
 #include <windows.h>
 #else
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifdef __GNUC__
 #include <unistd.h>
-#endif
-
 #include <stdarg.h>
-#include <stdint.h>
+
 #include <wchar.h>
 #ifdef __cplusplus
 }

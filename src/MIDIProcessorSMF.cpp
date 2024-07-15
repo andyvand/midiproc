@@ -5,6 +5,20 @@
 #include "../compat/common_compat.h"
 #include "../compat/string_compat.h"
 
+#ifndef OLD_MSVC
+#include <stdint.h>
+#else
+typedef char int8_t;
+typedef short int16_t;
+typedef int int32_t;
+typedef __int64 int64_t;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned __int64 uint64_t;
+typedef unsigned int size_t;
+#endif
+
   const uint8_t SysExUseForRhythmPartCh16[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x1F, 0x15, 0x02, 0x0A, 0xF7 }; // Use channel 16 for rhythm.
 
 bool MIDIProcessor::IsSMF(std::vector<uint8_t> const & data)
@@ -79,7 +93,7 @@ bool MIDIProcessor::ProcessSMF(std::vector<uint8_t> const & data, MIDIContainer 
 
         if (::memcmp(&Data[0], "MTrk", 4) == 0)
         {
-            if (Tail - Data < (std::ptrdiff_t) (8 + ChunkSize))
+            if (Tail - Data < (ptrdiff_t) (8 + ChunkSize))
                 return SetLastErrorCode(InsufficientData);
 
             Data += 8;
@@ -94,7 +108,7 @@ bool MIDIProcessor::ProcessSMF(std::vector<uint8_t> const & data, MIDIContainer 
         // Skip unknown chunks in the stream.
         else
         {
-            if (Tail - Data < (std::ptrdiff_t) (8 + ChunkSize))
+            if (Tail - Data < (ptrdiff_t) (8 + ChunkSize))
                 return SetLastErrorCode(InsufficientData);
 
             Data += (int64_t)(8) + ChunkSize;

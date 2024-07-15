@@ -4,7 +4,9 @@
 /** $VER: Range.h (2023.11.01) P. Stuer **/
 #pragma once
 
+#ifndef OLD_MSVC
 #include <stdint.h>
+#endif
 
 #ifndef noexcept
 #define noexcept

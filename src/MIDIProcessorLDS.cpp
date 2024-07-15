@@ -6,6 +6,24 @@
 #include "../compat/string_compat.h"
 #include "../compat/common_compat.h"
 
+#ifndef OLD_MSVC
+#include <stdint.h>
+#else
+typedef char int8_t;
+typedef short int16_t;
+typedef int int32_t;
+typedef __int64 int64_t;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned __int64 uint64_t;
+typedef unsigned int size_t;
+
+#ifndef MIN
+#define MIN(A,B) ((A) < (B) ? (A) : (B))
+#endif
+#endif
+
 #define ENABLE_WHEEL
 //#define ENABLE_VIB
 //#define ENABLE_ARP
@@ -130,7 +148,7 @@ static void PlaySound(uint8_t currentInstrument[], std::vector<SoundPatch> const
 #endif
     channel_state * c, uint8_t allvolume, unsigned Timestamp, unsigned sound, unsigned chan, unsigned high, MIDITrack & track)
 {
-    uint8_t buffer[2] = { };
+    uint8_t buffer[2] = { 0, 0 };
 
     currentInstrument[chan] = (uint8_t) sound;
 
@@ -359,7 +377,7 @@ bool MIDIProcessor::ProcessLDS(std::vector<uint8_t> const & data, MIDIContainer 
 //  uint8_t register_bd;
 
     uint16_t PatchCount;
-
+	size_t i = 0;
     std::vector<uint8_t>::const_iterator it  = data.begin();
     std::vector<uint8_t>::const_iterator end = data.end();
 
@@ -383,9 +401,9 @@ bool MIDIProcessor::ProcessLDS(std::vector<uint8_t> const & data, MIDIContainer 
     if (end - it < 9)
         return false;
 
-    uint8_t ChannelDelay[9] = { };
+    uint8_t ChannelDelay[9] = { 0 };
 
-    for (size_t i = 0; i < 9; ++i)
+    for (i = 0; i < 9; ++i)
         ChannelDelay[i] = *it++;
 
 //  register_bd = *it++;
@@ -406,7 +424,7 @@ bool MIDIProcessor::ProcessLDS(std::vector<uint8_t> const & data, MIDIContainer 
 
     std::vector<SoundPatch> Patches(PatchCount);
 
-    for (uint16_t i = 0; i < PatchCount; ++i)
+    for (i = 0; i < PatchCount; ++i)
     {
         SoundPatch & patch = Patches[i];
 
@@ -463,16 +481,12 @@ bool MIDIProcessor::ProcessLDS(std::vector<uint8_t> const & data, MIDIContainer 
 
     it += 2;
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED <= 1060
-	position_data Positions[9 * PositionCount];
-#else
-    std::vector<position_data> Positions((size_t)(9 * PositionCount));
-#endif
+	position_data Positions[9 * 0xFFFF];
 
     if (end - it < 3 * PositionCount)
         return false;
 
-    for (uint16_t  i = 0; i < PositionCount; ++i)
+    for (i = 0; i < PositionCount; ++i)
     {
         for (unsigned j = 0; j < 9; ++j)
         {
@@ -498,7 +512,7 @@ bool MIDIProcessor::ProcessLDS(std::vector<uint8_t> const & data, MIDIContainer 
 
     std::vector<uint16_t> Patterns(PatternCount);
 
-    for (size_t i = 0; i < PatternCount; ++i)
+    for (i = 0; i < PatternCount; ++i)
     {
         Patterns[i] = (uint16_t) (it[0] | ((uint16_t) it[1] << 8));
         it += 2;
@@ -535,7 +549,7 @@ bool MIDIProcessor::ProcessLDS(std::vector<uint8_t> const & data, MIDIContainer 
 
     uint32_t Timestamp = 0;
 
-    uint8_t buffer[2] = { };
+    uint8_t buffer[2] = { 0, 0 };
 
     container.Initialize(1, 35);
 
@@ -544,7 +558,7 @@ bool MIDIProcessor::ProcessLDS(std::vector<uint8_t> const & data, MIDIContainer 
 
         Track.AddEvent(MIDIEvent(0, Extended, 0, DefaultTempoLDS, _countof(DefaultTempoLDS)));
 
-        for (size_t i = 0; i < 11; ++i)
+        for (i = 0; i < 11; ++i)
         {
             buffer[0] = 120;
             buffer[1] = 0;
@@ -1185,7 +1199,7 @@ bool MIDIProcessor::ProcessLDS(std::vector<uint8_t> const & data, MIDIContainer 
 
     --Timestamp;
 
-    for (size_t i = 0; i < 9; ++i)
+    for (i = 0; i < 9; ++i)
     {
         MIDITrack & Track = Tracks[i];
 

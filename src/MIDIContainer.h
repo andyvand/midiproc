@@ -4,11 +4,21 @@
 /** $VER: MIDIContainer.h (2024.05.07) **/
 #pragma once
 
+#ifndef OLD_MSVC
 #pragma warning(disable: 4514) // Unreferenced inline function has been removed
 #pragma warning(disable: 4820) // Padding added after data member
 #pragma warning(disable: 5045) // Compiler will insert Spectre mitigation for memory load if /Qspectre switch specified
 
 #include <stdint.h>
+#else
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned __int64 uint64_t;
+typedef unsigned int size_t;
+
+#include <stdio.h>
+#endif
 
 #include <string>
 #include <vector>
@@ -136,7 +146,7 @@ public:
         return _Events[index];
     }
 
-    MIDIEvent & operator[](std::size_t index) noexcept
+    MIDIEvent & operator[](size_t index) noexcept
     {
         return _Events[index];
     }
@@ -145,12 +155,8 @@ public:
     std::vector<MIDIEvent>::iterator begin(void) { return _Events.begin(); }
     std::vector<MIDIEvent>::iterator end(void) { return _Events.end(); }
 
-    std::vector<MIDIEvent>::const_iterator begin(void) const { return _Events.begin(); }
-    std::vector<MIDIEvent>::const_iterator end(void) const { return _Events.end(); }
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= 1070) || defined(WIN32) || defined(_WIN32) || defined(ANDROID) || defined(__ANDROID__) || defined(__linux__)
-    std::vector<MIDIEvent>::const_iterator cbegin(void) const { return _Events.cbegin(); }
-    std::vector<MIDIEvent>::const_iterator cend(void) const { return _Events.cend(); }
-#endif
+    std::vector<MIDIEvent>::iterator begin(void) const { return (MIDIEvent *)_Events.begin(); }
+    std::vector<MIDIEvent>::iterator end(void) const { return (MIDIEvent *)_Events.end(); }
 
 private:
     std::vector<MIDIEvent> _Events;
@@ -179,7 +185,7 @@ public:
         return _Items.size();
     }
 
-    const TempoItem & operator[](std::size_t p_index) const
+    const TempoItem & operator[](size_t p_index) const
     {
         return _Items[p_index];
     }
@@ -201,14 +207,14 @@ struct SysExItem
 
     SysExItem(void) noexcept : Offset(0), Size(0), PortNumber(0) { }
     SysExItem(const SysExItem & src);
-    SysExItem(uint8_t portNumber, std::size_t offset, std::size_t size);
+    SysExItem(uint8_t portNumber, size_t offset, size_t size);
 };
 
 class SysExTable
 {
 public:
-    size_t AddItem(const uint8_t * data, std::size_t size, uint8_t portNumber);
-    bool GetItem(size_t index, const uint8_t * & data, std::size_t & size, uint8_t & portNumber) const;
+    size_t AddItem(const uint8_t * data, size_t size, uint8_t portNumber);
+    bool GetItem(size_t index, const uint8_t * & data, size_t & size, uint8_t & portNumber) const;
 
     size_t Size(void) const
     {
@@ -296,8 +302,8 @@ public:
     bool GetItem(const char * name, MIDIMetaDataItem & item) const;
     bool GetBitmap(std::vector<uint8_t> & bitmap) const;
 
-	void AssignBitmap(std::vector<uint8_t>::const_iterator const begin, std::vector<uint8_t>::const_iterator const end);
-	std::size_t GetCount(void) const;
+	void AssignBitmap(std::vector<uint8_t>::iterator const begin, std::vector<uint8_t>::iterator const end);
+	size_t GetCount(void) const;
 
     const MIDIMetaDataItem & operator[](size_t index) const;
 
@@ -366,12 +372,8 @@ public:
     std::vector<MIDITrack>::iterator begin(void) { return _Tracks.begin(); }
     std::vector<MIDITrack>::iterator end(void) { return _Tracks.end(); }
 
-    std::vector<MIDITrack>::const_iterator begin(void) const { return _Tracks.begin(); }
-    std::vector<MIDITrack>::const_iterator end(void) const { return _Tracks.end(); }
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= 1070) || defined(WIN32) || defined(_WIN32) || defined(ANDROID) || defined(__ANDROID__) || defined(__linux__)
-    std::vector<MIDITrack>::const_iterator cbegin(void) const { return _Tracks.cbegin(); }
-    std::vector<MIDITrack>::const_iterator cend(void) const { return _Tracks.cend(); }
-#endif
+    std::vector<MIDITrack>::iterator begin(void) const { return (MIDITrack *)_Tracks.begin(); }
+    std::vector<MIDITrack>::iterator end(void) const { return (MIDITrack *)_Tracks.end(); }
 
 public:
     enum

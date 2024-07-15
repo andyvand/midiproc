@@ -20,7 +20,7 @@ bool MIDIProcessor::IsHMI(std::vector<uint8_t> const & p_file)
 bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer & container)
 {
     std::vector<uint8_t>::const_iterator it = data.begin() + 0xE4;
-
+	size_t i = 0;
     uint32_t TrackCount       = (uint32_t) (it[0] | (it[1] << 8) | (it[2] << 16) | (it[3] << 24));
     uint32_t TrackTableOffset = (uint32_t) (it[4] | (it[5] << 8) | (it[6] << 16) | (it[7] << 24));
 
@@ -31,7 +31,7 @@ bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer 
 
     std::vector<uint32_t> TrackOffsets(TrackCount);
 
-    for (size_t i = 0; i < TrackCount; ++i)
+    for (i = 0; i < TrackCount; ++i)
     {
         TrackOffsets[i] = (uint32_t) (it[0] | (it[1] << 8) | (it[2] << 16) | (it[3] << 24));
         it += 4;
@@ -50,7 +50,7 @@ bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer 
 
     std::vector<uint8_t> Temp;
 
-    for (uint32_t i = 0; i < TrackCount; ++i)
+    for (i = 0; i < TrackCount; ++i)
     {
         uint32_t TrackOffset = TrackOffsets[i];
 

@@ -55,7 +55,7 @@ bool MIDIProcessor::ProcessHMP(std::vector<uint8_t> const & data, MIDIContainer 
         container.AddTrack(Track);
     }
 
-    uint8_t Data[4] = { };
+    uint8_t Data[4] = { 0, 0, 0, 0 };
 
     if (it == end)
         return false;

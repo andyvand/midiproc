@@ -4,9 +4,34 @@
 #pragma once
 
 // C API
+#ifndef OLD_MSVC
 #include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#else
+typedef char int8_t;
+typedef short int16_t;
+typedef int int32_t;
+typedef __int64 int64_t;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned __int64 uint64_t;
+typedef unsigned int size_t;
+
+#ifndef bool
+#define bool unsigned char
+#endif
+
+#ifndef false
+#define false 0
+#endif
+
+#ifndef true
+#define true 1
+#endif
+#endif
+
+#include <stddef.h>
 
 #if defined(WIN32) || defined(_WIN32)
 #define EXPORT __declspec(dllexport)
